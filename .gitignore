@@ -1,0 +1,21 @@
+# my file
+data/
+checkpoint/
+./ipynb_checkpoints
+runs/
+
+# python
+.py[cod]
+.$py.class
+
+# C
+*.so
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Enviroments
+.env
+.venv
+env/
+venv/
