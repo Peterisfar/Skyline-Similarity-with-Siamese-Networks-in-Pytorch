@@ -3,6 +3,7 @@ data/
 checkpoint/
 ./ipynb_checkpoints
 runs/
+__pycache__
 
 # python
 .py[cod]

@@ -9,26 +9,36 @@ from tools import *
 
 class SkylineDataset(Dataset):
 
-    def __init__(self, root, transform=None):
+    def __init__(self, root, seed=None, transform=None):
         self.root_path = root
         self.transform = transform
+        self.seed = seed
         self.filenames = os.listdir(self.root_path)
+
+        if seed is not None:
+            random.seed(seed)
+        print('CureDataset_init.')
 
     def __getitem__(self, idx):
         filename = self.filenames[idx]
         file = read_data_row(os.path.join(self.root_path, filename), 1).strip().split(" ")
-        line1 = np.array(list(map(int, file[0].split(','))))  # C*H*W = (1, 320, 1)
+        line1 = np.array(list(map(int, file[0].split(','))))  # C*H*W = (1, length, 1)
+
+        length = len(line1)
         if self.transform:
             line1 = Move()(line1)
             line1 = Rotate()(line1)
         line2 = np.array(list(map(int, file[1].split(','))))
-        line = np.hstack((line1, line2))
 
+        # Normalization
+        line = np.hstack((line1, line2))
         line_min, line_max = line.min(), line.max()
         line = (line - line_min) / (line_max - line_min)
 
-        line1 = line[:320].reshape(1, 320, 1)
-        line2 = line[320:].reshape(1, 320, 1)
+        line1 = line[:length].reshape(1, length, 1)
+        line2 = line[length:].reshape(1, length, 1)
+
+
         label = np.array(list(map(int, file[2])))
         sample = {"line": [line1, line2], "label": label}
         if self.transform:
@@ -40,8 +50,11 @@ class SkylineDataset(Dataset):
 
 
 class Rotate(object):
+    def __init__(self, angle=6):
+        self.angle = angle
+
     def __call__(self, line):
-        angle = random.randint(-6, 6)
+        angle = random.randint(-1*self.angle, self.angle)
         pointx = len(line) // 2
         pointy = line[pointx]
         angle = float(angle) * 3.1415 / float(180)
@@ -52,8 +65,11 @@ class Rotate(object):
 
 
 class Move(object):
+    def __init__(self, mving_step=30):
+        self.mving_step = mving_step
+
     def __call__(self, line):
-        delta = random.randint(-30, 30)
+        delta = random.randint(-1*self.mving_step, self.mving_step)
         return line + delta
 
 
