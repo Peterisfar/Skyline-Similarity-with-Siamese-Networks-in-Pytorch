@@ -161,7 +161,7 @@ for epoch in range(opt.niter):
             print('%s/%s_best.pth has beed saved.' % (opt.exp, time_str))
 
     # every 100 epoch to eval train_set
-    if epoch % 100 == 0:
+    if epoch % 1 == 0:
         netG.eval()
         print('*' * 5 + ' Validating the train_dataset ' + '*' * 5)
         acc_train = 0.
