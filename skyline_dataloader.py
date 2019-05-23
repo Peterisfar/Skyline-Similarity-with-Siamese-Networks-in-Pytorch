@@ -65,7 +65,7 @@ class Rotate(object):
 
 
 class Move(object):
-    def __init__(self, mving_step=30):
+    def __init__(self, mving_step=100):
         self.mving_step = mving_step
 
     def __call__(self, line):

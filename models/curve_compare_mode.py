@@ -15,7 +15,7 @@ class Curve_Compare(nn.Module):
         super(Curve_Compare, self).__init__()
 
         self.conv1 = nn.Sequential(
-            nn.Conv1d(2, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv1d(1, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm1d(32),
             nn.ReLU(inplace = True),
             
@@ -87,7 +87,13 @@ class Curve_Compare(nn.Module):
             nn.BatchNorm1d(512),
             nn.ReLU(inplace = True),
             )
-        
+
+        self.conv6 = nn.Sequential(
+            nn.Conv1d(1024, 512, kernel_size=1, stride=1, padding=0),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace = True),
+            )
+
         self.cla = nn.Sequential(
             nn.Linear(512*10, 64),  # Note : size need to adjust!
             nn.LeakyReLU(0.2, inplace=True),
@@ -104,22 +110,24 @@ class Curve_Compare(nn.Module):
         self.maxpool = nn.MaxPool1d(kernel_size=2, stride=2)
 
         
-
-    def forward(self, x1, x2):
-        
-        # x1 = torch.unsqueeze(x1,1)
-        # x2 = torch.unsqueeze(x2,1)
-        x = torch.cat((x1,x2),1)
-        
+    def forward_sub(self, x):
         conv1 = self.maxpool(self.conv1(x))
         conv2 = self.maxpool(self.conv2(conv1))
         conv3 = self.maxpool(self.conv3(conv2))
         conv4 = self.maxpool(self.conv4(conv3))
         conv5 = self.maxpool(self.conv5(conv4))
+
+        return conv5
+
+    def forward(self, x1, x2):
+        out1 = self.forward_sub(x1)
+        out2 = self.forward_sub(x2)
+        out = torch.cat((out1, out2), 1)
+
+        conv6 = self.conv6(out)
+        conv6 = conv6.view(conv6.shape[0], -1)
         
-        conv5 = conv5.view(conv5.shape[0], -1)
-        
-        cla = self.cla(conv5)
+        cla = self.cla(conv6)
         
         return cla
     

@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import json
 import pandas as pd
 
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 import models.curve_compare_mode as ccm
 from skyline_dataloader import *
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = ccm.Curve_Compare()
-    model.load_state_dict(torch.load("./checkpoint/new/2019-05-09_best.pth"))
+    model.load_state_dict(torch.load("./checkpoint/new2/2019-05-14_best.pth"))
     model.to(device)
 
     eval_topN(model, "./data/test", device)

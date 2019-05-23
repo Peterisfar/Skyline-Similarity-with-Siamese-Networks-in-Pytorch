@@ -16,9 +16,10 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 import models.curve_compare_mode as ccm
+import models.model as mm
 from skyline_dataloader import *
 
 
@@ -37,11 +38,11 @@ parser.add_argument('--outputChannelSize', type=int,
                     default=1, help='size of the output channels')
 parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for adam')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
-parser.add_argument('--niter', type=int, default=5000, help='number of epochs to train for')
+parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
 parser.add_argument('--lrG', type=float, default=0.001, help='learning rate, default=0.001')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
-parser.add_argument('--exp', default='./checkpoint/new', help='folder to output images and model checkpoints')
-parser.add_argument('--display', type=int, default=10, help='interval for displaying train-logs')
+parser.add_argument('--exp', default='./checkpoint/new2', help='folder to output images and model checkpoints')
+parser.add_argument('--display', type=int, default=1, help='interval for displaying train-logs')
 parser.add_argument('--evalIter', type=int, default=426,
                     help='interval for evauating(generating) images from valDataroot')
 opt = parser.parse_args()
@@ -82,7 +83,8 @@ trainLogger = open('%s/train.log' % opt.exp, 'a+')
 validLogger = open('%s/valid.log' % opt.exp, 'a+')
 
 # get models
-netG = ccm.Curve_Compare()
+# netG = ccm.Curve_Compare()
+netG = mm.SiameseNetwork()
 netG = netG.to(opt.device)
 if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG, map_location={'cuda': 'cuda'}))
@@ -131,34 +133,34 @@ for epoch in range(opt.niter):
             trainLogger.write(disp_str + '\n')
             trainLogger.flush()
 
-    # every 10 epoch to eval val_set
-    if epoch % 1 == 0:
-        netG.eval()
-        print('*' * 5 + ' Validating ' + '*' * 5)
-        acc_valid = 0.
-        with torch.no_grad():
-            for idx, data in enumerate(val_dataloader, 0):
-                x1 = data["line"][0].view(opt.valBatchSize, 1, -1)
-                x2 = data["line"][1].view(opt.valBatchSize, 1, -1)
-                label = data["label"].view(-1, )
+        # every 10 iters to eval val_set
+        if ganIterations > 9 and ganIterations % 10 == 0:
+            netG.eval()
+            print('*' * 5 + ' Validating ' + '*' * 5)
+            acc_valid = 0.
+            with torch.no_grad():
+                for idx, data in enumerate(val_dataloader, 0):
+                    x1 = data["line"][0].view(opt.valBatchSize, 1, -1)
+                    x2 = data["line"][1].view(opt.valBatchSize, 1, -1)
+                    label = data["label"].view(-1, )
 
-                x1 = x1.to(opt.device)
-                x2 = x2.to(opt.device)
-                label = label.long().to(opt.device)
+                    x1 = x1.to(opt.device)
+                    x2 = x2.to(opt.device)
+                    label = label.long().to(opt.device)
 
-                pred = netG(x1, x2)
-                acc_valid += (pred.argmax(1) == label).sum().item()
+                    pred = netG(x1, x2)
+                    acc_valid += (pred.argmax(1) == label).sum().item()
 
-            acc_valid /= len(val_dataset)
-            print('Valid Accuracy = {}'.format(acc_valid))
-            validLogger.write('epoch:{}\t {}\n'.format(epoch, acc_valid))
-            validLogger.flush()
+                acc_valid /= len(val_dataset)
+                print('Valid Accuracy = {}'.format(acc_valid))
+                validLogger.write('epoch:{}\t {}\n'.format(epoch, acc_valid))
+                validLogger.flush()
 
-        # save model
-        if acc_valid > best_val_acc:
-            best_val_acc = acc_valid
-            torch.save(netG.state_dict(), '%s/%s_best.pth' % (opt.exp, time_str))
-            print('%s/%s_best.pth has beed saved.' % (opt.exp, time_str))
+            # save model
+            if acc_valid > best_val_acc:
+                best_val_acc = acc_valid
+                torch.save(netG.state_dict(), '%s/%s_best.pth' % (opt.exp, time_str))
+                print('%s/%s_best.pth has beed saved.' % (opt.exp, time_str))
 
     # every 100 epoch to eval train_set
     if epoch % 1 == 0:
@@ -181,6 +183,7 @@ for epoch in range(opt.niter):
             acc_train /= len(train_dataset)
             print('Train Accuracy = {}'.format(acc_train))
         print('*' * 5 + ' Valid End. ' + '*' * 5)
+
 
     # save model
     if epoch % 10 == 0:

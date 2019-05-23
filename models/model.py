@@ -53,8 +53,7 @@ class SiameseNetwork(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(80, 1),
-            nn.Sigmoid())
+            nn.Linear(80, 2))
 
     def forward_once(self, x):
         x0 = self.feature0(x)
@@ -68,7 +67,7 @@ class SiameseNetwork(nn.Module):
         output = torch.cat((output1, output2), 1)
 
         output = self.classify(output)
-        output = output.view(-1, 1, 80).contiguous()
+        output = output.view(-1, 80).contiguous()
 
         output = self.fc(output)
         return output
